@@ -23,4 +23,4 @@
 - 異なる端末・ブラウザ・URLでは保存領域が別です。初回公開前に旧版のCSVを保存してください。
 - Wi-Fi接続時の自動バックアップはありません。
 - GitHub Pagesへの公開にはGitHubリポジトリのPages設定が必要です。
-開発環境：Visual Studio Code
+- 開発環境：Visual Studio Code
