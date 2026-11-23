@@ -90,18 +90,84 @@ function renderRange(){
  }
 }
 $('rangeStart').onclick=()=>{rangeMode='start';renderRange()};$('rangeEnd').onclick=()=>{if(rangeStart!==null){rangeMode='end';renderRange()}};$('rangeClear').onclick=()=>{rangeStart=null;rangeEnd=null;rangeMode='';renderRange()};
-function updateGps(){
- if(gpsBusy)return;
- const el=$('gpsStatus');
- if(!navigator.geolocation){el.textContent='この環境ではGPSを利用できません。位置情報なしで記録できます。';return}
- gpsBusy=true;el.textContent=latestLocation?'位置情報を更新中…（取得済みの位置は保持します）':'位置情報を取得中…';
- navigator.geolocation.getCurrentPosition(pos=>{
-  latestLocation={latitude:pos.coords.latitude,longitude:pos.coords.longitude,gpsAccuracyM:pos.coords.accuracy,gpsTimestamp:new Date(pos.timestamp).toISOString()};
-  gpsBusy=false;el.textContent=`GPS取得済み（精度 約${Math.round(pos.coords.accuracy)}m・${formatTime(pos.timestamp)}）`;
- },err=>{gpsBusy=false;el.textContent=`GPSを取得できません（${err.code===1?'許可されていないか、安全な接続ではありません':err.code===2?'位置を特定できません': 'タイムアウト'}）。位置情報なしで記録できます。`},{enableHighAccuracy:false,timeout:12000,maximumAge:120000});
+
+
+async function updateGps() {
+  if (gpsBusy) return;
+
+  const el = $('gpsStatus');
+
+  if (!window.isSecureContext) {
+    el.textContent = 'GPS診断：安全な接続ではありません（HTTPSが必要です）。';
+    return;
+  }
+
+  if (!navigator.geolocation) {
+    el.textContent = 'GPS診断：この環境では位置情報APIを利用できません。';
+    return;
+  }
+
+  gpsBusy = true;
+  el.textContent = 'GPS診断：位置情報を取得中…';
+
+  let permission = '確認できません';
+
+  try {
+    if (navigator.permissions?.query) {
+      const result = await navigator.permissions.query({
+        name: 'geolocation'
+      });
+      permission = result.state;
+    }
+  } catch (e) {
+    permission = '取得非対応';
+  }
+
+  navigator.geolocation.getCurrentPosition(
+    pos => {
+      latestLocation = {
+        latitude: pos.coords.latitude,
+        longitude: pos.coords.longitude,
+        gpsAccuracyM: pos.coords.accuracy,
+        gpsTimestamp: new Date(pos.timestamp).toISOString()
+      };
+
+      gpsBusy = false;
+
+      el.textContent =
+        `GPS取得成功（精度 約${Math.round(pos.coords.accuracy)}m）` +
+        `／権限状態：${permission}`;
+    },
+    err => {
+      gpsBusy = false;
+
+      const errorNames = {
+        1: 'PERMISSION_DENIED（アクセス拒否）',
+        2: 'POSITION_UNAVAILABLE（位置取得不可）',
+        3: 'TIMEOUT（時間切れ）'
+      };
+
+      el.textContent =
+        `GPS診断：${errorNames[err.code] || '不明なエラー'}` +
+        `／権限状態：${permission}` +
+        `／詳細：${err.message || '情報なし'}`;
+    },
+    {
+      enableHighAccuracy: false,
+      timeout: 15000,
+      maximumAge: 0
+    }
+  );
 }
-$('refreshGps').onclick=updateGps;
-document.addEventListener('visibilitychange',()=>{if(!document.hidden)updateGps()});
+
+$('refreshGps').onclick = updateGps;
+
+document.addEventListener('visibilitychange', () => {
+  if (!document.hidden) updateGps();
+});
+
+
+
 function csvCell(value){const s=value==null?'':String(value);return '"'+s.replace(/"/g,'""')+'"'}
 // CSVはダウンロードとiPhone共有で同じデータを使用する。
 function makeCsvFile(){
