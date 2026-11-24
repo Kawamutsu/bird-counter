@@ -100,7 +100,7 @@ function renderCustomEntry() {
         const b = document.createElement('button'); b.type = 'button'; b.className = 'chip' + (active ? ' active' : ''); b.textContent = option;
         b.onclick = () => { if (f.type === 'multi') { const cur = Array.isArray(answers.customFields[f.id]) ? answers.customFields[f.id] : []; answers.customFields[f.id] = cur.includes(option) ? cur.filter(x => x !== option) : [...cur, option] } else answers.customFields[f.id] = active ? '' : option; renderCustomEntry() }; chips.append(b)
       } wrap.append(chips);
-    } else { const input = document.createElement(f.type === 'text' ? 'textarea' : 'input'); if (f.type === 'number') { input.type = 'number'; input.step = f.id==='flock'?'1':'any'; input.inputMode = 'decimal'; if(f.id==='flock')input.min='1'; if(f.id==='distance')input.min='0' } else input.rows = 2; input.value = value; input.placeholder = '任意'; input.oninput = () => { answers.customFields[f.id] = input.value }; wrap.append(input) } root.append(wrap);
+    } else { const input = document.createElement(f.type === 'text' ? 'textarea' : 'input'); if (f.type === 'number') { input.type = 'number'; input.step = f.id==='flock'?'1':'any'; input.inputMode = 'decimal'; if(f.id==='flock')input.min='1'; if(f.id==='distance')input.min='0' } else input.rows = 2; input.value = value; input.oninput = () => { answers.customFields[f.id] = input.value }; wrap.append(input) } root.append(wrap);
   }
   const nodes = new Map([...root.children].map(el => [el.dataset.field, el])); for (const f of orderedFields()) { const el = nodes.get(f.id); if (el) root.append(el) }
 }
@@ -285,7 +285,7 @@ function renderCustomSettings(root) {
   const description = document.createElement('p'); description.className = 'settings-note'; description.textContent = '削除ではなく非表示にすると、過去の値を残したまま入力欄を隠せます。'; root.append(description);
   function action(label, fn) { const b = document.createElement('button'); b.type = 'button'; b.textContent = label; b.onclick = fn; return b }
   for (const {custom:f} of orderedFields()) {
-    const row = document.createElement('div'); row.className = 'setting-row'; const name = document.createElement('span'); name.textContent = f.name + '（' + ({ single: '単一選択', multi: '複数選択', number: '数値', text: '自由記述' }[f.type]) + '）' + (f.hidden ? '［非表示］' : ''); row.append(name);
+    const row = document.createElement('div'); row.className = 'setting-row'; const name = document.createElement('span'); name.textContent = f.name + (f.hidden ? '［非表示］' : ''); row.append(name);
     for(const [label,delta] of [['↑',-1],['↓',1]]){const ids=orderedFields().map(x=>x.id),i=ids.indexOf(f.id);const b=action(label,()=>{const previous=fieldOrder;[ids[i],ids[i+delta]]=[ids[i+delta],ids[i]];fieldOrder=ids;if(persistSettings()){renderSettings();render()}else fieldOrder=previous});b.disabled=i+delta<0||i+delta>=ids.length;row.append(b)}
     if(f.type==='number')row.append(action('単位',()=>{const v=prompt('単位（空欄可）',f.unit||'');if(v!==null&&saveCustomFields(CUSTOM_FIELDS.map(x=>x.id===f.id?{...x,unit:v.trim()}:x)))renderSettings()}));
     row.append(action('名称変更', () => { const v = prompt('新しい項目名', f.name); if (v === null) return; const n = v.trim(); if (!n) return; if (saveCustomFields(CUSTOM_FIELDS.map(x => x.id === f.id ? { ...x, name: n } : x))) renderSettings() }));

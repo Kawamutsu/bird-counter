@@ -1,5 +1,5 @@
-const CACHE = 'bird-counter-pwa-v1.4.5';
-const ASSETS = ['./','./index.html','./css/style.css','./js/app.js','./js/app.js?v=1.4.5','./js/storage.js','./manifest.webmanifest','./icons/icon-192.png','./icons/icon-512.png'];
+const CACHE = 'bird-counter-pwa-v1.4.6';
+const ASSETS = ['./','./index.html','./css/style.css','./js/app.js','./js/app.js?v=1.4.6','./js/storage.js','./manifest.webmanifest','./icons/icon-192.png','./icons/icon-512.png'];
 self.addEventListener('install', event => {
   event.waitUntil(caches.open(CACHE).then(cache => cache.addAll(ASSETS)).then(() => self.skipWaiting()));
 });
