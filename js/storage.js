@@ -39,6 +39,7 @@
    }
    const s=data.settings;
    if(s!==null&&(!s||!Array.isArray(s.species)||!s.species.every(v=>typeof v==='string')||!s.choices||!['method','behavior','posture'].every(k=>Array.isArray(s.choices[k])&&s.choices[k].every(v=>typeof v==='string'))))throw Error('ボタン設定の形式に問題があります');
+   if(s?.fieldOrder!==undefined&&(!Array.isArray(s.fieldOrder)||!s.fieldOrder.every(x=>typeof x==='string')))throw Error('項目順の設定が不正です');
    const customFields=data.version===2?data.customFields:[];
    if(!Array.isArray(customFields)||!customFields.every(f=>f&&typeof f.id==='string'&&typeof f.name==='string'&&['single','multi','number','text'].includes(f.type)&&Array.isArray(f.options)&&f.options.every(x=>typeof x==='string')))throw Error('追加項目の設定が不正です');
    const maxId=data.records.reduce((m,r)=>Math.max(m,r.id),0);

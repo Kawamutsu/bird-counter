@@ -16,9 +16,13 @@ function saveCustomFields(next){try{localStorage.setItem(CUSTOM_KEY,JSON.stringi
 function newFieldId(){return 'field_'+(crypto.randomUUID?crypto.randomUUID():Date.now()+'_'+Math.random().toString(36).slice(2))}
 function fieldValue(r,f){const v=r.customFields?.[f.id];return Array.isArray(v)?v.join('、'):v??''}
 
+const STANDARD_FIELDS=[['flock','群れ','群れサイズ','flockSize'],['sex','性別','性別','sex'],['age','年齢','年齢','age'],['method','確認','確認方法','methods'],['behavior','行動','行動','behavior'],['posture','姿勢','姿勢','posture'],['distance','距離(m)','距離_m','distanceM'],['memo','メモ','メモ','freeMemo']];
+let fieldOrder=[];
+function orderedFields(){const all=[...STANDARD_FIELDS.map(([id,label,csv,prop])=>({id,label,csv,prop})),...CUSTOM_FIELDS.map(f=>({id:f.id,label:f.name,csv:f.name+(f.unit?' ('+f.unit+')':''),custom:f}))];const ids=[...new Set([...fieldOrder,...all.map(f=>f.id)])];return ids.map(id=>all.find(f=>f.id===id)).filter(Boolean)}
+function orderedValue(r,f,csv=false){if(f.custom)return fieldValue(r,f.custom);const v=r[f.prop];return Array.isArray(v)?v.join(csv?';':'、'):v??''}
 let SPECIES=[...DEFAULT_SPECIES];let CHOICES=structuredClone(DEFAULT_CHOICES);
-try{const saved=JSON.parse(localStorage.getItem(SETTINGS_KEY)||'null');if(saved&&Array.isArray(saved.species)&&saved.species.every(x=>typeof x==='string')&&saved.choices){SPECIES=[...saved.species];for(const k of ['sex','age','method','behavior','posture'])if(Array.isArray(saved.choices[k])&&saved.choices[k].every(x=>typeof x==='string'))CHOICES[k]=[...saved.choices[k]];}}catch(e){console.warn('設定の読込に失敗',e)}
-function persistSettings(){try{localStorage.setItem(SETTINGS_KEY,JSON.stringify({species:SPECIES,choices:CHOICES}));return true}catch(e){alert('設定を保存できませんでした');return false}}
+try{const saved=JSON.parse(localStorage.getItem(SETTINGS_KEY)||'null');if(Array.isArray(saved?.fieldOrder))fieldOrder=saved.fieldOrder.filter(x=>typeof x==='string');if(saved&&Array.isArray(saved.species)&&saved.species.every(x=>typeof x==='string')&&saved.choices){SPECIES=[...saved.species];for(const k of ['sex','age','method','behavior','posture'])if(Array.isArray(saved.choices[k])&&saved.choices[k].every(x=>typeof x==='string'))CHOICES[k]=[...saved.choices[k]];}}catch(e){console.warn('設定の読込に失敗',e)}
+function persistSettings(){try{localStorage.setItem(SETTINGS_KEY,JSON.stringify({species:SPECIES,choices:CHOICES,fieldOrder}));return true}catch(e){alert('設定を保存できませんでした');return false}}
 const $=id=>document.getElementById(id);
 let records=[];try{const stored=JSON.parse(localStorage.getItem(KEY)||'[]');if(Array.isArray(stored))records=stored;}catch(e){console.warn('保存済みデータを読み込めませんでした',e)}
 // v1.1: Assign stable sequential IDs to legacy UUID records without dropping any data.
@@ -52,9 +56,9 @@ let chosen='',answers={},editingId=null;let latestLocation=null;let rangeStart=n
 function show(page){for(const id of ['home','entry','records','settings'])$(id).classList.toggle('hidden',id!==page);$('navHome').classList.toggle('active',page==='home'||page==='entry');$('navRecords').classList.toggle('active',page==='records');$('navSettings').classList.toggle('active',page==='settings');render();if(page==='settings')renderSettings();window.scrollTo(0,0)}
 function openEntry(name){editingId=null;$('deleteBtn').classList.add('hidden');$('saveBtn').textContent='記録する';chosen=name;answers={sex:'',age:'',method:[],behavior:[],posture:'',customFields:{}};$('entryTitle').textContent=name==='その他'?'その他の種':name;$('customWrap').classList.toggle('hidden',name!=='その他');for(const id of ['customSpecies','flock','distance','freeMemo'])$(id).value='';$('count').value='1';$('error').textContent='';renderChoices();renderCustomEntry();show('entry');}
 function renderCustomEntry(){
- const root=$('customFieldsEntry');root.replaceChildren();
+ const root=$('orderedFields');root.querySelectorAll('[data-custom-field]').forEach(el=>el.remove());
  for(const f of CUSTOM_FIELDS){if(f.hidden)continue;
-  const wrap=document.createElement('div'),label=document.createElement('label');label.textContent=f.name+(f.unit?' ('+f.unit+')':'');wrap.append(label);
+  const wrap=document.createElement('div'),label=document.createElement('label');label.textContent=f.name+(f.unit?' ('+f.unit+')':'');wrap.dataset.field=f.id;wrap.dataset.customField="true";wrap.append(label);
   const value=answers.customFields?.[f.id]??(f.type==='multi'?[]:'');
   if(f.type==='single'||f.type==='multi'){
    const chips=document.createElement('div');chips.className='chips';
@@ -63,12 +67,13 @@ function renderCustomEntry(){
     b.onclick=()=>{if(f.type==='multi'){const cur=Array.isArray(answers.customFields[f.id])?answers.customFields[f.id]:[];answers.customFields[f.id]=cur.includes(option)?cur.filter(x=>x!==option):[...cur,option]}else answers.customFields[f.id]=active?'':option;renderCustomEntry()};chips.append(b)}wrap.append(chips);
   }else{const input=document.createElement(f.type==='text'?'textarea':'input');if(f.type==='number'){input.type='number';input.step='any';input.inputMode='decimal'}else input.rows=2;input.value=value;input.placeholder='任意';input.oninput=()=>{answers.customFields[f.id]=input.value};wrap.append(input)}root.append(wrap);
  }
+ const nodes=new Map([...root.children].map(el=>[el.dataset.field,el]));for(const f of orderedFields()){const el=nodes.get(f.id);if(el)root.append(el)}
 }
 function renderChoices(){for(const [key,values] of Object.entries(CHOICES)){const box=$(key+'Chips');box.replaceChildren();for(const value of values){const multiple=Array.isArray(answers[key]);const active=multiple?answers[key].includes(value):answers[key]===value;const b=document.createElement('button');b.className='chip'+(active?' active':'');b.textContent=value;b.type='button';b.setAttribute('aria-pressed',String(active));b.onclick=()=>{if(multiple)answers[key]=active?answers[key].filter(x=>x!==value):[...answers[key],value];else answers[key]=active?'':value;renderChoices()};box.append(b)}}}
 function render(){
  const grid=$('speciesGrid');grid.replaceChildren();for(const name of SPECIES){const b=document.createElement('button');b.textContent=name;b.onclick=()=>openEntry(name);grid.append(b)}$('total').textContent=SPECIES.length+'種';$('recordCount').textContent=records.length+'件';
- const head=$('recordHead');head.replaceChildren();const tr=document.createElement('tr');const headers=['時刻','種名','羽数','ID','群れ','性別','年齢','確認','行動','姿勢','距離(m)','メモ','緯度','経度','GPS精度(m)',...CUSTOM_FIELDS.map(f=>f.name)];headers.forEach((v,i)=>{const th=document.createElement('th');th.textContent=v;if(i<3)th.className='freeze '+['c-time','c-species','c-count'][i];tr.append(th)});head.append(tr);
- const list=$('recordList');list.replaceChildren();for(const r of records){const row=document.createElement('tr');const vals=[formatTime(r.timestamp),r.species,r.count,r.id,r.flockSize??'',r.sex||'',r.age||'',(r.methods||[]).join('、'),(r.behavior||[]).join('、'),r.posture||'',r.distanceM??'',r.freeMemo||'',r.latitude??'',r.longitude??'',r.gpsAccuracyM??'',...CUSTOM_FIELDS.map(f=>fieldValue(r,f))];vals.forEach((v,i)=>{const td=document.createElement('td');td.textContent=String(v);td.title=String(v);if(i<3)td.className='freeze '+['c-time','c-species','c-count'][i];row.append(td)});row.onclick=()=>{if(rangeMode){const index=records.findIndex(x=>x.id===r.id);if(rangeMode==='start'){rangeStart=index;rangeEnd=null;rangeMode='end'}else{rangeEnd=index;rangeMode=''}renderRange();return}editRecord(r)};row.dataset.recordIndex=String(records.findIndex(x=>x.id===r.id));list.append(row)}renderRange();
+ const head=$('recordHead');head.replaceChildren();const tr=document.createElement('tr');const fields=orderedFields();const headers=['ID','日付','時間','種名','数',...fields.map(f=>f.label),'緯度','経度','GPS精度(m)'];headers.forEach((v,i)=>{const th=document.createElement('th');th.textContent=v;tr.append(th)});head.append(tr);
+ const list=$('recordList');list.replaceChildren();for(const r of records){const row=document.createElement('tr');const vals=[r.id,formatDate(r.timestamp),formatTime(r.timestamp),r.species,r.count,...fields.map(f=>orderedValue(r,f)),r.latitude??'',r.longitude??'',r.gpsAccuracyM??''];vals.forEach((v,i)=>{const td=document.createElement('td');td.textContent=String(v);td.title=String(v);row.append(td)});row.onclick=()=>{if(rangeMode){const index=records.findIndex(x=>x.id===r.id);if(rangeMode==='start'){rangeStart=index;rangeEnd=null;rangeMode='end'}else{rangeEnd=index;rangeMode=''}renderRange();return}editRecord(r)};row.dataset.recordIndex=String(records.findIndex(x=>x.id===r.id));list.append(row)}renderRange();
 }
 function renderRange(){
  $('rangeStart').classList.toggle('selected',rangeMode==='start');$('rangeEnd').classList.toggle('selected',rangeMode==='end');
@@ -102,9 +107,10 @@ function validGps() {
   const age = latestLocation ? Date.now() - Date.parse(latestLocation.gpsTimestamp) : Infinity;
   return gpsEnabled && !document.hidden && age >= 0 && age <= GPS_MAX_AGE ? latestLocation : null;
 }
+function showGpsCoordinates(){const el=$('gpsCoordinates'),g=validGps();el.classList.toggle('hidden',!g);el.textContent=g?`緯度経度：${g.latitude.toFixed(6)}, ${g.longitude.toFixed(6)}`:''}
 function stopGps() {
   gpsGeneration++;
-  latestLocation = null;
+  latestLocation = null; showGpsCoordinates();
   if (gpsWatch !== null) navigator.geolocation.clearWatch(gpsWatch);
   gpsWatch = null;
 }
@@ -124,16 +130,17 @@ function updateGps() {
   try {
     gpsWatch = navigator.geolocation.watchPosition(pos => {
       if (generation !== gpsGeneration || !gpsEnabled || document.hidden) return;
-      latestLocation = null;
+      latestLocation = null; showGpsCoordinates();
       if (pos.timestamp < started || Date.now() - pos.timestamp > GPS_MAX_AGE || pos.timestamp > Date.now()) {
         el.textContent = '新しい位置情報を待機中…'; return;
       }
       latestLocation = {latitude:pos.coords.latitude, longitude:pos.coords.longitude,
         gpsAccuracyM:pos.coords.accuracy, gpsTimestamp:new Date(pos.timestamp).toISOString()};
+      showGpsCoordinates();
       el.textContent = `GPS取得成功（精度 約${Math.round(pos.coords.accuracy)}m）`;
     }, err => {
       if (generation !== gpsGeneration) return;
-      latestLocation = null;
+      latestLocation = null; showGpsCoordinates();
       const names = {1:'アクセス拒否',2:'位置取得不可',3:'時間切れ'};
       el.textContent = `GPS：${names[err.code] || '取得失敗'}（${err.message || '詳細なし'}）`;
     }, {enableHighAccuracy:true, timeout:15000, maximumAge:0});
@@ -151,7 +158,7 @@ window.addEventListener('pagehide', stopGps);
 window.addEventListener('pageshow', e => { if (e.persisted) updateGps(); });
 setInterval(() => {
   if (latestLocation && !validGps()) {
-    latestLocation = null;
+    latestLocation = null; showGpsCoordinates();
     if (gpsEnabled && !document.hidden) $('gpsStatus').textContent = '新しい位置情報を待機中…';
   }
 }, 1000);
@@ -159,8 +166,8 @@ setInterval(() => {
 function csvCell(value){const s=value==null?'':String(value);return '"'+s.replace(/"/g,'""')+'"'}
 // CSVはダウンロードとiPhone共有で同じデータを使用する。
 function makeCsvFile(){
- const headers=['ID','日時','種名','個体数','群れサイズ','性別','年齢','確認方法','行動','姿勢','距離_m','メモ','緯度','経度','GPS精度_m','GPS取得日時',...CUSTOM_FIELDS.map(f=>f.name+(f.unit?' ('+f.unit+')':''))];
- const values=records.map(r=>[r.id,r.timestamp,r.species,r.count,r.flockSize??'',r.sex||'',r.age||'',(r.methods||[]).join(';'),(r.behavior||[]).join(';'),r.posture||'',r.distanceM??'',r.freeMemo||'',r.latitude??'',r.longitude??'',r.gpsAccuracyM??'',r.gpsTimestamp||'',...CUSTOM_FIELDS.map(f=>fieldValue(r,f))]);
+ const fields=orderedFields();const headers=['ID','日付','時間','種名','個体数',...fields.map(f=>f.csv),'緯度','経度','GPS精度_m','GPS取得日時'];
+ const values=records.map(r=>[r.id,formatDate(r.timestamp),formatTime(r.timestamp,true),r.species,r.count,...fields.map(f=>orderedValue(r,f,true)),r.latitude??'',r.longitude??'',r.gpsAccuracyM??'',r.gpsTimestamp||'']);
  const csv='\uFEFF'+[headers,...values].map(row=>row.map(csvCell).join(',')).join('\r\n');
  const now=new Date();const pad=n=>String(n).padStart(2,'0');
  const stamp=`${now.getFullYear()}-${pad(now.getMonth()+1)}-${pad(now.getDate())}-${pad(now.getHours())}${pad(now.getMinutes())}`;
@@ -201,11 +208,15 @@ $('shareCsv').onclick=()=>{
  }catch(e){console.warn('共有を開始できませんでした',e);fallback('共有を開始できませんでした'+(e&&e.message?'（'+e.message+'）':'')+'。');}
 };
 
-function formatTime(value){const d=new Date(value);return Number.isNaN(d.getTime())?'--:--':d.toLocaleTimeString('ja-JP',{hour:'2-digit',minute:'2-digit'})}
+function formatDate(value){const d=new Date(value);return Number.isNaN(d.getTime())?'':`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`}
+function formatTime(value,seconds=false){const d=new Date(value);return Number.isNaN(d.getTime())?'--:--':d.toLocaleTimeString('ja-JP',{hour:'2-digit',minute:'2-digit',...(seconds?{second:'2-digit'}:{})})}
 function editRecord(r){editingId=r.id;chosen='その他';answers={sex:r.sex||'',age:r.age||'',method:[...(r.methods||[])],behavior:[...(r.behavior||[])],posture:r.posture||'',customFields:{...(r.customFields||{})}};$('entryTitle').textContent='記録を編集（ID '+r.id+'）';$('customWrap').classList.remove('hidden');$('customSpecies').value=r.species||'';$('count').value=r.count;$('flock').value=r.flockSize??'';$('distance').value=r.distanceM??'';$('freeMemo').value=r.freeMemo||'';$('error').textContent='';$('saveBtn').textContent='変更を保存';$('deleteBtn').classList.remove('hidden');renderChoices();renderCustomEntry();show('entry')}
 
 function renderSettings(){
  const root=$('settingsContent');root.replaceChildren();
+ const heading=document.createElement('h3');heading.textContent='記録項目の並び順';root.append(heading);
+ const fields=orderedFields();fields.forEach((f,i)=>{const row=document.createElement('div');row.className='setting-row';const name=document.createElement('span');name.textContent=f.label+(f.custom?.hidden?'［非表示］':'');row.append(name);for(const [label,delta] of [['↑',-1],['↓',1]]){const b=document.createElement('button');b.type='button';b.textContent=label;b.disabled=i+delta<0||i+delta>=fields.length;b.onclick=()=>{const previous=fieldOrder;const next=fields.map(x=>x.id);[next[i],next[i+delta]]=[next[i+delta],next[i]];fieldOrder=next;if(persistSettings()){renderSettings();render()}else fieldOrder=previous};row.append(b)}root.append(row)});
+
  for(const [key,title] of [['species','種名ボタン'],['sex','性別'],['age','年齢'],['method','確認方法'],['behavior','行動'],['posture','姿勢']]){
   const values=key==='species'?SPECIES:CHOICES[key];
   const h=document.createElement('h3');h.textContent=title;root.append(h);
@@ -226,13 +237,21 @@ function renderSettings(){
  const note=document.createElement('p');note.className='settings-note';note.textContent='設定はこのブラウザに保存されます。選択肢を変更しても過去の記録値は変更されません。';root.append(note);renderCustomSettings(root);
 }
 
+function deleteCustomField(f){
+ const count=records.filter(r=>{const v=r.customFields?.[f.id];return Array.isArray(v)?v.length>0:v!=null&&v!==''}).length;
+ if(!confirm(`「${f.name}」を削除しますか？\n値が記録されている${count}件のデータも削除されます。\nこの操作は元に戻せません。`))return;
+ const nextRecords=records.map(r=>{if(!r.customFields||!Object.hasOwn(r.customFields,f.id))return r;const customFields={...r.customFields};delete customFields[f.id];return {...r,customFields}});
+ const nextFields=CUSTOM_FIELDS.filter(x=>x.id!==f.id);const keys=[KEY,CUSTOM_KEY];let previous;
+ try{previous=keys.map(k=>localStorage.getItem(k));localStorage.setItem(KEY,JSON.stringify(nextRecords));localStorage.setItem(CUSTOM_KEY,JSON.stringify(nextFields));}catch(e){if(previous)keys.forEach((k,i)=>{try{if(previous[i]===null)localStorage.removeItem(k);else localStorage.setItem(k,previous[i])}catch{}});alert('削除を保存できませんでした');return}
+ records=nextRecords;CUSTOM_FIELDS=nextFields;fieldOrder=fieldOrder.filter(id=>id!==f.id);persistSettings();renderSettings();render();
+}
 function renderCustomSettings(root){
  const h=document.createElement('h3');h.textContent='追加した記録項目';root.append(h);
  const description=document.createElement('p');description.className='settings-note';description.textContent='削除ではなく非表示にすると、過去の値を残したまま入力欄を隠せます。';root.append(description);
  function action(label,fn){const b=document.createElement('button');b.type='button';b.textContent=label;b.onclick=fn;return b}
  for(const f of CUSTOM_FIELDS){const row=document.createElement('div');row.className='setting-row';const name=document.createElement('span');name.textContent=f.name+'（'+({single:'単一選択',multi:'複数選択',number:'数値',text:'自由記述'}[f.type])+ '）'+(f.hidden?'［非表示］':'');row.append(name);
   row.append(action('名称変更',()=>{const v=prompt('新しい項目名',f.name);if(v===null)return;const n=v.trim();if(!n)return;if(saveCustomFields(CUSTOM_FIELDS.map(x=>x.id===f.id?{...x,name:n}:x)))renderSettings()}));
-  row.append(action(f.hidden?'表示':'非表示',()=>{if(saveCustomFields(CUSTOM_FIELDS.map(x=>x.id===f.id?{...x,hidden:!x.hidden}:x)))renderSettings()}));root.append(row);
+  row.append(action(f.hidden?'表示':'非表示',()=>{if(saveCustomFields(CUSTOM_FIELDS.map(x=>x.id===f.id?{...x,hidden:!x.hidden}:x)))renderSettings()}));row.append(action('削除',()=>deleteCustomField(f)));root.append(row);
   if(f.type==='single'||f.type==='multi'){
    const list=document.createElement('div');list.style.paddingLeft='12px';root.append(list);
    f.options.forEach((opt,i)=>{const r=document.createElement('div');r.className='setting-row';const name=document.createElement('span');name.textContent=opt;r.append(name);

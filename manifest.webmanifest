@@ -1,7 +1,7 @@
 {
-  "name": "鳥類カウント",
-  "short_name": "鳥類カウント",
-  "description": "野外での鳥類観察を記録・集計するアプリ",
+  "name": "FIELD LOG",
+  "short_name": "FIELD LOG",
+  "description": "野外で観察記録を収集するアプリ",
   "lang": "ja",
   "start_url": "./index.html",
   "scope": "./",

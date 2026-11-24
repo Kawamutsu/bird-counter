@@ -4,11 +4,11 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-    <title>BIRD COUNTER</title>
+    <title>FIELD LOG</title>
     <meta name="theme-color" content="#f5f5f4">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
-    <meta name="apple-mobile-web-app-title" content="鳥類カウント">
+    <meta name="apple-mobile-web-app-title" content="FIELD LOG">
     <link rel="manifest" href="manifest.webmanifest">
     <link rel="apple-touch-icon" href="icons/icon-192.png">
     <link rel="stylesheet" href="css/style.css">
@@ -16,7 +16,7 @@
 
 <body>
     <main class="app"><!-- 画面上部のタイトルはここで変更 -->
-        <header class="app-header"><span class="eyebrow">BIRD OBSERVATION</span>
+        <header class="app-header"><span class="eyebrow">FIELD LOG</span>
             <h1>記録入力</h1>
         </header>
         <section id="home">
@@ -24,6 +24,7 @@
                 <div class="top"><span class="sub">位置情報</span><button id="refreshGps" type="button"
                         aria-pressed="true">GPS ON</button></div>
                 <p id="gpsStatus" class="gps-status" aria-live="polite">位置情報を確認中…</p>
+                <p id="gpsCoordinates" class="gps-status hidden"></p>
             </div>
             <div class="panel">
                 <div class="top">
@@ -40,23 +41,30 @@
                 <div id="customWrap" class="hidden"><label for="customSpecies">種名</label><input id="customSpecies"
                         placeholder="種名を入力"></div><label for="count">個体数</label>
                 <div class="number"><button id="minus">−</button><input id="count" type="number" min="1" step="1"
-                        inputmode="numeric" value="1"><button id="plus">＋</button></div><label
-                    for="flock">群れサイズ</label><input id="flock" type="number" min="1" step="1" inputmode="numeric"
-                    placeholder="未記録">
-                <div class="field-row">
-                    <div><label>性別</label>
+                        inputmode="numeric" value="1"><button id="plus">＋</button></div>
+                <div id="orderedFields">
+                    <div data-field="flock"><label for="flock">群れサイズ</label><input id="flock" type="number" min="1"
+                            step="1" inputmode="numeric" placeholder="未記録"></div>
+                    <div data-field="sex"><label>性別</label>
                         <div id="sexChips" class="chips"></div>
                     </div>
-                    <div><label>年齢</label>
+                    <div data-field="age"><label>年齢</label>
                         <div id="ageChips" class="chips"></div>
                     </div>
-                </div><label>確認方法</label>
-                <div id="methodChips" class="chips"></div><label>行動</label>
-                <div id="behaviorChips" class="chips"></div><label>姿勢</label>
-                <div id="postureChips" class="chips"></div>
-                <div id="customFieldsEntry"></div><label for="distance">観察者からの距離</label><input id="distance"
-                    type="number" min="0" step="any" inputmode="decimal" placeholder="未記録"><label
-                    for="freeMemo">自由メモ</label><textarea id="freeMemo" rows="2" placeholder="必要な場合のみ入力"></textarea>
+                    <div data-field="method"><label>確認方法</label>
+                        <div id="methodChips" class="chips"></div>
+                    </div>
+                    <div data-field="behavior"><label>行動</label>
+                        <div id="behaviorChips" class="chips"></div>
+                    </div>
+                    <div data-field="posture"><label>姿勢</label>
+                        <div id="postureChips" class="chips"></div>
+                    </div>
+                    <div data-field="distance"><label for="distance">観察者からの距離</label><input id="distance" type="number"
+                            min="0" step="any" inputmode="decimal" placeholder="未記録"></div>
+                    <div data-field="memo"><label for="freeMemo">自由メモ</label><textarea id="freeMemo" rows="2"
+                            placeholder="必要な場合のみ入力"></textarea></div>
+                </div>
                 <p id="error" class="error"></p>
                 <div class="sticky-save">
                     <div class="entry-actions"><button id="saveBtn" class="primary">記録する</button><button id="deleteBtn"
@@ -88,7 +96,7 @@
         <section id="settings" class="hidden">
             <div class="panel">
                 <h2>記録項目の設定</h2>
-                <p class="sub">種名や選択肢の編集、新しい記録項目の作成ができます。過去の記録は変更されません。</p>
+                <p class="sub">種名や選択肢の編集、新しい記録項目の作成ができます。項目の並べ替えができます。追加項目の削除時は過去の値も削除されます。</p>
                 <div id="settingsContent"></div>
             </div>
             <div class="panel">
@@ -108,7 +116,7 @@
                 id="navRecords">記録一覧</button><button id="navSettings">設定</button></div>
     </nav>
     <script src="js/storage.js" defer></script>
-    <script src="js/app.js?v=1.4.3" defer></script>
+    <script src="js/app.js?v=1.4.4" defer></script>
 </body>
 
 </html>

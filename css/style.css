@@ -370,35 +370,6 @@ label {
    background: #d4ecdf
 }
 
-.data-table .freeze {
-   position: sticky;
-   z-index: 1
-}
-
-.data-table th.freeze {
-   z-index: 3;
-   background: #edf4ee
-}
-
-.data-table .c-time {
-   left: 0;
-   width: 57px;
-   min-width: 57px
-}
-
-.data-table .c-species {
-   left: 57px;
-   width: 108px;
-   min-width: 108px
-}
-
-.data-table .c-count {
-   left: 165px;
-   width: 54px;
-   min-width: 54px;
-   border-right: 2px solid #bfd4c5
-}
-
 .table-hint {
    margin: 8px 0;
    color: #66766e;
@@ -443,10 +414,6 @@ label {
 }
 
 .data-table tbody tr.in-range td {
-   background: #e1f3e6
-}
-
-.data-table tbody tr.in-range td.freeze {
    background: #e1f3e6
 }
 
@@ -632,24 +599,12 @@ button:focus-visible {
    background: #f3f3f2
 }
 
-.data-table th.freeze {
-   background: #f3f3f2
-}
-
 .data-table td,
 .data-table th {
    border-color: #eee
 }
 
-.data-table .c-count {
-   border-color: #bbb
-}
-
 .data-table tbody tr.in-range td,
-.data-table tbody tr.in-range td.freeze {
-   background: #e5e5e3
-}
-
 .data-table tbody tr.range-edge td {
    box-shadow: inset 0 2px #333, inset 0 -2px #333
 }
@@ -758,3 +713,7 @@ h1,h2,.eyebrow,button,label,.data-table th {font-family:-apple-system,BlinkMacSy
 /* v1.4.3 GPS ON/OFF */
 #refreshGps { min-width: 100px; }
 #refreshGps[aria-pressed="true"] { background:#222; color:#fff; border-color:#222; }
+
+/* v1.4.4 */
+#gpsCoordinates { font-variant-numeric: tabular-nums; }
+.setting-row { flex-wrap: wrap; }
