@@ -1,122 +1,21 @@
 <!doctype html>
 <html lang="ja">
-
 <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-    <title>FIELD LOG</title>
-    <meta name="theme-color" content="#f5f5f4">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="default">
-    <meta name="apple-mobile-web-app-title" content="FIELD LOG">
-    <link rel="manifest" href="manifest.webmanifest">
-    <link rel="apple-touch-icon" href="icons/icon-192.png">
-    <link rel="stylesheet" href="css/style.css">
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>FIELD LOG</title>
+<meta name="theme-color" content="#f5f5f4"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="default"><meta name="apple-mobile-web-app-title" content="FIELD LOG"><link rel="manifest" href="manifest.webmanifest"><link rel="apple-touch-icon" href="icons/icon-192.png">
+<link rel="stylesheet" href="css/style.css">
 </head>
-
-<body>
-    <main class="app"><!-- 画面上部のタイトルはここで変更 -->
-        <header class="app-header"><span class="eyebrow">FIELD LOG</span>
-            <h1>記録入力</h1>
-        </header>
-        <section id="home">
-            <div class="panel">
-                <div class="top"><span class="sub">位置情報</span><button id="refreshGps" type="button"
-                        aria-pressed="true">GPS ON</button></div>
-                <p id="gpsStatus" class="gps-status" aria-live="polite">位置情報を確認中…</p>
-                <p id="gpsCoordinates" class="gps-status hidden"></p>
-            </div>
-            <div class="panel">
-                <div class="top">
-                    <h2>種名を選択</h2><span class="sub" id="total"></span>
-                </div>
-                <div id="speciesGrid" class="grid"></div><button class="secondary" id="otherBtn">＋ その他の種</button>
-            </div>
-        </section>
-        <section id="entry" class="hidden">
-            <div class="panel">
-                <div class="top"><button class="back" id="backBtn">← 戻る</button>
-                    <h2 id="entryTitle"></h2>
-                </div>
-                <div id="customWrap" class="hidden"><label for="customSpecies">種名</label><input id="customSpecies"
-                        placeholder="種名を入力"></div><label for="count">個体数</label>
-                <div class="number"><button id="minus">−</button><input id="count" type="number" min="1" step="1"
-                        inputmode="numeric" value="1"><button id="plus">＋</button></div>
-                <div id="orderedFields">
-                    <div data-field="flock"><label for="flock">群れサイズ</label><input id="flock" type="number" min="1"
-                            step="1" inputmode="numeric" placeholder="未記録"></div>
-                    <div data-field="sex"><label>性別</label>
-                        <div id="sexChips" class="chips"></div>
-                    </div>
-                    <div data-field="age"><label>年齢</label>
-                        <div id="ageChips" class="chips"></div>
-                    </div>
-                    <div data-field="method"><label>確認方法</label>
-                        <div id="methodChips" class="chips"></div>
-                    </div>
-                    <div data-field="behavior"><label>行動</label>
-                        <div id="behaviorChips" class="chips"></div>
-                    </div>
-                    <div data-field="posture"><label>姿勢</label>
-                        <div id="postureChips" class="chips"></div>
-                    </div>
-                    <div data-field="distance"><label for="distance">観察者からの距離</label><input id="distance" type="number"
-                            min="0" step="any" inputmode="decimal" placeholder="未記録"></div>
-                    <div data-field="memo"><label for="freeMemo">自由メモ</label><textarea id="freeMemo" rows="2"
-                            placeholder="必要な場合のみ入力"></textarea></div>
-                </div>
-                <p id="error" class="error"></p>
-                <div class="sticky-save">
-                    <div class="entry-actions"><button id="saveBtn" class="primary">記録する</button><button id="deleteBtn"
-                            class="danger hidden">この記録を削除</button></div>
-                </div>
-            </div>
-        </section>
-        <section id="records" class="hidden">
-            <div class="panel">
-                <div class="top">
-                    <h2>記録一覧</h2><span id="recordCount" class="sub"></span>
-                </div>
-                <p class="table-hint">← 左右にスクロールできます。IDは全記録の通し番号で、削除後も再利用しません。行をタップすると編集・削除できます。</p>
-                <div class="utility-actions"><button id="shareCsv" type="button">CSVを共有する（全件）</button><button
-                        id="exportCsv" type="button">CSVを保存する（全件）</button></div>
-                <p id="csvShareStatus" class="sub" aria-live="polite"></p>
-                <div class="range-actions"><button id="rangeStart">① 開始行を選択</button><button id="rangeEnd">②
-                        終了行を選択</button><button id="rangeClear">選択解除</button></div>
-                <p id="rangeHint" class="sub" aria-live="polite">集計する場合は「開始行を選択」を押してください。</p>
-                <div class="table-scroll">
-                    <table class="data-table">
-                        <thead id="recordHead"></thead>
-                        <tbody id="recordList"></tbody>
-                    </table>
-                </div>
-                <div id="rangeSummary" class="summary hidden" aria-live="polite"></div>
-            </div>
-        </section>
-        <section id="settings" class="hidden">
-            <div class="panel">
-                <h2>記録項目の設定</h2>
-                <p class="sub">種名や選択肢の編集、新しい記録項目の作成ができます。項目の並べ替えができます。追加項目の削除時は過去の値も削除されます。</p>
-                <div id="settingsContent"></div>
-            </div>
-            <div class="panel">
-                <h2>データ管理</h2>
-                <p class="backup-note">CSVは解析用、JSONは記録とボタン設定の復元用です。バックアップは手動で保存します。</p>
-                <div class="backup-actions"><button id="backupJson" type="button">JSONバックアップを保存</button><button
-                        id="restoreJson" type="button">JSONから復元</button></div>
-                <input id="restoreFile" type="file" accept=".json,application/json" class="hidden"
-                    aria-label="復元用JSONファイル">
-                <p id="backupStatus" class="backup-note" aria-live="polite">JSONバックアップ：未作成</p>
-                <p class="backup-note">復元すると現在の記録とボタン設定を置き換えます。復元前に必ず現在のバックアップを保存してください。</p>
-            </div>
-        </section>
-    </main>
-    <nav class="nav">
-        <div class="nav-inner"><button id="navHome" class="active">入力</button><button
-                id="navRecords">記録一覧</button><button id="navSettings">設定</button></div>
-    </nav>
-    <script src="js/storage.js" defer></script>
-    <script src="js/app.js?v=1.4.4" defer></script>
-</body>
-
-</html>
+<body><main class="app"><!-- 画面上部のタイトルはここで変更 -->
+<header class="app-header"><span class="eyebrow">FIELD LOG</span><h1>記録入力</h1></header>
+<section id="home"><div class="panel"><div class="top"><span class="sub">位置情報</span><button id="refreshGps" type="button" aria-pressed="true">GPS ON</button></div><p id="gpsStatus" class="gps-status" aria-live="polite">位置情報を確認中…</p><p id="gpsCoordinates" class="gps-status hidden"></p></div><div class="panel"><div class="top"><h2>種名を選択</h2><span class="sub" id="total"></span></div><div id="speciesGrid" class="grid"></div><button class="secondary" id="otherBtn">＋ その他の種</button></div></section>
+<section id="entry" class="hidden"><div class="panel"><div class="top"><button class="back" id="backBtn">← 戻る</button><h2 id="entryTitle"></h2></div><div id="customWrap" class="hidden"><label for="customSpecies">種名</label><input id="customSpecies" placeholder="種名を入力"></div><label for="count">個体数</label><div class="number"><button id="minus">−</button><input id="count" type="number" min="1" step="1" inputmode="numeric" value="1"><button id="plus">＋</button></div><div id="orderedFields"></div><p id="error" class="error"></p><div class="sticky-save"><div class="entry-actions"><button id="saveBtn" class="primary">記録する</button><button id="deleteBtn" class="danger hidden">この記録を削除</button></div></div></div></section>
+<section id="records" class="hidden"><div class="panel"><div class="top"><h2>記録一覧</h2><span id="recordCount" class="sub"></span></div><p class="table-hint">← 左右にスクロールできます。IDは全記録の通し番号で、削除後も再利用しません。行をタップすると編集・削除できます。</p><div class="utility-actions"><button id="shareCsv" type="button">CSVを共有する（全件）</button><button id="exportCsv" type="button">CSVを保存する（全件）</button></div><p id="csvShareStatus" class="sub" aria-live="polite"></p><div class="range-actions"><button id="rangeStart">① 開始行を選択</button><button id="rangeEnd">② 終了行を選択</button><button id="rangeClear">選択解除</button></div><p id="rangeHint" class="sub" aria-live="polite">集計する場合は「開始行を選択」を押してください。</p><div class="table-scroll"><table class="data-table"><thead id="recordHead"></thead><tbody id="recordList"></tbody></table></div><div id="rangeSummary" class="summary hidden" aria-live="polite"></div></div></section>
+<section id="settings" class="hidden"><div class="panel"><h2>記録項目の設定</h2><p class="sub">種名や選択肢の編集、新しい記録項目の作成ができます。項目の並べ替えができます。追加項目の削除時は過去の値も削除されます。</p><div id="settingsContent"></div></div>
+<div class="panel"><h2>データ管理</h2><p class="backup-note">CSVは解析用、JSONは記録とボタン設定の復元用です。バックアップは手動で保存します。</p>
+<div class="backup-actions"><button id="backupJson" type="button">JSONバックアップを保存</button><button id="restoreJson" type="button">JSONから復元</button></div>
+<input id="restoreFile" type="file" accept=".json,application/json" class="hidden" aria-label="復元用JSONファイル">
+<p id="backupStatus" class="backup-note" aria-live="polite">JSONバックアップ：未作成</p>
+<p class="backup-note">復元すると現在の記録とボタン設定を置き換えます。復元前に必ず現在のバックアップを保存してください。</p></div></section>
+</main><nav class="nav"><div class="nav-inner"><button id="navHome" class="active">入力</button><button id="navRecords">記録一覧</button><button id="navSettings">設定</button></div></nav>
+<script src="js/storage.js" defer></script><script src="js/app.js?v=1.4.5" defer></script></body></html>
