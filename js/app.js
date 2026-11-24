@@ -48,7 +48,7 @@ try{
  }
  localStorage.setItem(NEXT_ID_KEY,String(nextId));
 }catch(e){migrationReady=false;console.error('ID移行に失敗しました。保存を停止します。',e)}
-let chosen='',answers={},editingId=null;let latestLocation=null;let gpsBusy=false;let rangeStart=null,rangeEnd=null,rangeMode='';
+let chosen='',answers={},editingId=null;let latestLocation=null;let rangeStart=null,rangeEnd=null,rangeMode='';
 function show(page){for(const id of ['home','entry','records','settings'])$(id).classList.toggle('hidden',id!==page);$('navHome').classList.toggle('active',page==='home'||page==='entry');$('navRecords').classList.toggle('active',page==='records');$('navSettings').classList.toggle('active',page==='settings');render();if(page==='settings')renderSettings();window.scrollTo(0,0)}
 function openEntry(name){editingId=null;$('deleteBtn').classList.add('hidden');$('saveBtn').textContent='記録する';chosen=name;answers={sex:'',age:'',method:[],behavior:[],posture:'',customFields:{}};$('entryTitle').textContent=name==='その他'?'その他の種':name;$('customWrap').classList.toggle('hidden',name!=='その他');for(const id of ['customSpecies','flock','distance','freeMemo'])$(id).value='';$('count').value='1';$('error').textContent='';renderChoices();renderCustomEntry();show('entry');}
 function renderCustomEntry(){
@@ -68,7 +68,7 @@ function renderChoices(){for(const [key,values] of Object.entries(CHOICES)){cons
 function render(){
  const grid=$('speciesGrid');grid.replaceChildren();for(const name of SPECIES){const b=document.createElement('button');b.textContent=name;b.onclick=()=>openEntry(name);grid.append(b)}$('total').textContent=SPECIES.length+'種';$('recordCount').textContent=records.length+'件';
  const head=$('recordHead');head.replaceChildren();const tr=document.createElement('tr');const headers=['時刻','種名','羽数','ID','群れ','性別','年齢','確認','行動','姿勢','距離(m)','メモ','緯度','経度','GPS精度(m)',...CUSTOM_FIELDS.map(f=>f.name)];headers.forEach((v,i)=>{const th=document.createElement('th');th.textContent=v;if(i<3)th.className='freeze '+['c-time','c-species','c-count'][i];tr.append(th)});head.append(tr);
- const list=$('recordList');list.replaceChildren();for(const r of records.slice().reverse()){const row=document.createElement('tr');const vals=[formatTime(r.timestamp),r.species,r.count,r.id,r.flockSize??'',r.sex||'',r.age||'',(r.methods||[]).join('、'),(r.behavior||[]).join('、'),r.posture||'',r.distanceM??'',r.freeMemo||'',r.latitude??'',r.longitude??'',r.gpsAccuracyM??'',...CUSTOM_FIELDS.map(f=>fieldValue(r,f))];vals.forEach((v,i)=>{const td=document.createElement('td');td.textContent=String(v);td.title=String(v);if(i<3)td.className='freeze '+['c-time','c-species','c-count'][i];row.append(td)});row.onclick=()=>{if(rangeMode){const index=records.findIndex(x=>x.id===r.id);if(rangeMode==='start'){rangeStart=index;rangeEnd=null;rangeMode='end'}else{rangeEnd=index;rangeMode=''}renderRange();return}editRecord(r)};row.dataset.recordIndex=String(records.findIndex(x=>x.id===r.id));list.append(row)}renderRange();
+ const list=$('recordList');list.replaceChildren();for(const r of records){const row=document.createElement('tr');const vals=[formatTime(r.timestamp),r.species,r.count,r.id,r.flockSize??'',r.sex||'',r.age||'',(r.methods||[]).join('、'),(r.behavior||[]).join('、'),r.posture||'',r.distanceM??'',r.freeMemo||'',r.latitude??'',r.longitude??'',r.gpsAccuracyM??'',...CUSTOM_FIELDS.map(f=>fieldValue(r,f))];vals.forEach((v,i)=>{const td=document.createElement('td');td.textContent=String(v);td.title=String(v);if(i<3)td.className='freeze '+['c-time','c-species','c-count'][i];row.append(td)});row.onclick=()=>{if(rangeMode){const index=records.findIndex(x=>x.id===r.id);if(rangeMode==='start'){rangeStart=index;rangeEnd=null;rangeMode='end'}else{rangeEnd=index;rangeMode=''}renderRange();return}editRecord(r)};row.dataset.recordIndex=String(records.findIndex(x=>x.id===r.id));list.append(row)}renderRange();
 }
 function renderRange(){
  $('rangeStart').classList.toggle('selected',rangeMode==='start');$('rangeEnd').classList.toggle('selected',rangeMode==='end');
@@ -84,7 +84,7 @@ function renderRange(){
  else{
  const chosenRecords=records.slice(low,high+1);const totals=new Map();let total=0;
  for(const r of chosenRecords){const n=Number(r.count)||0;total+=n;const v=totals.get(r.species)||{count:0,rows:0};v.count+=n;v.rows++;totals.set(r.species,v)}
- hint.textContent=`${chosenRecords.length}件の記録を選択中（表では新しい記録が上に表示されます）`;
+ hint.textContent=`${chosenRecords.length}件の記録を選択中（表では新しい記録が下に表示されます）`;
  const h=document.createElement('strong');h.textContent=`集計結果：${totals.size}種・${total}羽（${chosenRecords.length}記録）`;summary.append(h);
  const table=document.createElement('table');const thead=document.createElement('thead');const tr=document.createElement('tr');for(const name of ['種名','合計個体数','記録件数']){const th=document.createElement('th');th.textContent=name;tr.append(th)}thead.append(tr);table.append(thead);const tbody=document.createElement('tbody');for(const [species,v] of [...totals].sort((a,b)=>b[1].count-a[1].count||a[0].localeCompare(b[0],'ja'))){const row=document.createElement('tr');for(const value of [species,v.count,v.rows]){const td=document.createElement('td');td.textContent=value;row.append(td)}tbody.append(row)}table.append(tbody);summary.append(table);
  }
@@ -92,81 +92,69 @@ function renderRange(){
 $('rangeStart').onclick=()=>{rangeMode='start';renderRange()};$('rangeEnd').onclick=()=>{if(rangeStart!==null){rangeMode='end';renderRange()}};$('rangeClear').onclick=()=>{rangeStart=null;rangeEnd=null;rangeMode='';renderRange()};
 
 
-async function updateGps() {
-  if (gpsBusy) return;
-
-  const el = $('gpsStatus');
-
-  if (!window.isSecureContext) {
-    el.textContent = 'GPS診断：安全な接続ではありません（HTTPSが必要です）。';
-    return;
-  }
-
-  if (!navigator.geolocation) {
-    el.textContent = 'GPS診断：この環境では位置情報APIを利用できません。';
-    return;
-  }
-
-  gpsBusy = true;
-  el.textContent = 'GPS診断：位置情報を取得中…';
-
-  let permission = '確認できません';
-
-  try {
-    if (navigator.permissions?.query) {
-      const result = await navigator.permissions.query({
-        name: 'geolocation'
-      });
-      permission = result.state;
-    }
-  } catch (e) {
-    permission = '取得非対応';
-  }
-
-  navigator.geolocation.getCurrentPosition(
-    pos => {
-      latestLocation = {
-        latitude: pos.coords.latitude,
-        longitude: pos.coords.longitude,
-        gpsAccuracyM: pos.coords.accuracy,
-        gpsTimestamp: new Date(pos.timestamp).toISOString()
-      };
-
-      gpsBusy = false;
-
-      el.textContent =
-        `GPS取得成功（精度 約${Math.round(pos.coords.accuracy)}m）` +
-        `／権限状態：${permission}`;
-    },
-    err => {
-      gpsBusy = false;
-
-      const errorNames = {
-        1: 'PERMISSION_DENIED（アクセス拒否）',
-        2: 'POSITION_UNAVAILABLE（位置取得不可）',
-        3: 'TIMEOUT（時間切れ）'
-      };
-
-      el.textContent =
-        `GPS診断：${errorNames[err.code] || '不明なエラー'}` +
-        `／権限状態：${permission}` +
-        `／詳細：${err.message || '情報なし'}`;
-    },
-    {
-      enableHighAccuracy: false,
-      timeout: 15000,
-      maximumAge: 0
-    }
-  );
+// GPS設定と鮮度管理（取得時刻から10秒以内のみ記録）
+const GPS_KEY = 'bird-counter-gps-enabled-v1';
+const GPS_MAX_AGE = 10000;
+let gpsEnabled = true;
+try { gpsEnabled = localStorage.getItem(GPS_KEY) !== 'false'; } catch(e) {}
+let gpsWatch = null, gpsGeneration = 0;
+function validGps() {
+  const age = latestLocation ? Date.now() - Date.parse(latestLocation.gpsTimestamp) : Infinity;
+  return gpsEnabled && !document.hidden && age >= 0 && age <= GPS_MAX_AGE ? latestLocation : null;
 }
-
-$('refreshGps').onclick = updateGps;
-
+function stopGps() {
+  gpsGeneration++;
+  latestLocation = null;
+  if (gpsWatch !== null) navigator.geolocation.clearWatch(gpsWatch);
+  gpsWatch = null;
+}
+function updateGps() {
+  stopGps();
+  const button = $('refreshGps'), el = $('gpsStatus');
+  button.textContent = gpsEnabled ? 'GPS ON' : 'GPS OFF';
+  button.setAttribute('aria-pressed', String(gpsEnabled));
+  if (!gpsEnabled) { el.textContent = '位置情報：OFF'; return; }
+  if (document.hidden) return;
+  if (!window.isSecureContext || !navigator.geolocation) {
+    el.textContent = '位置情報APIを利用できません'; return;
+  }
+  const generation = gpsGeneration;
+  const started = Date.now();
+  el.textContent = '位置情報を取得中…';
+  try {
+    gpsWatch = navigator.geolocation.watchPosition(pos => {
+      if (generation !== gpsGeneration || !gpsEnabled || document.hidden) return;
+      latestLocation = null;
+      if (pos.timestamp < started || Date.now() - pos.timestamp > GPS_MAX_AGE || pos.timestamp > Date.now()) {
+        el.textContent = '新しい位置情報を待機中…'; return;
+      }
+      latestLocation = {latitude:pos.coords.latitude, longitude:pos.coords.longitude,
+        gpsAccuracyM:pos.coords.accuracy, gpsTimestamp:new Date(pos.timestamp).toISOString()};
+      el.textContent = `GPS取得成功（精度 約${Math.round(pos.coords.accuracy)}m）`;
+    }, err => {
+      if (generation !== gpsGeneration) return;
+      latestLocation = null;
+      const names = {1:'アクセス拒否',2:'位置取得不可',3:'時間切れ'};
+      el.textContent = `GPS：${names[err.code] || '取得失敗'}（${err.message || '詳細なし'}）`;
+    }, {enableHighAccuracy:true, timeout:15000, maximumAge:0});
+  } catch(e) { el.textContent = 'GPS取得失敗：' + e.message; }
+}
+$('refreshGps').onclick = () => {
+  gpsEnabled = !gpsEnabled;
+  try { localStorage.setItem(GPS_KEY, String(gpsEnabled)); } catch(e) { console.warn(e); }
+  updateGps();
+};
 document.addEventListener('visibilitychange', () => {
-  if (!document.hidden) updateGps();
+  if (document.hidden) stopGps(); else updateGps();
 });
-
-
+window.addEventListener('pagehide', stopGps);
+window.addEventListener('pageshow', e => { if (e.persisted) updateGps(); });
+setInterval(() => {
+  if (latestLocation && !validGps()) {
+    latestLocation = null;
+    if (gpsEnabled && !document.hidden) $('gpsStatus').textContent = '新しい位置情報を待機中…';
+  }
+}, 1000);
 
 function csvCell(value){const s=value==null?'':String(value);return '"'+s.replace(/"/g,'""')+'"'}
 // CSVはダウンロードとiPhone共有で同じデータを使用する。
@@ -263,7 +251,7 @@ function renderCustomSettings(root){
  form.append(action('項目を追加',()=>{const n=name.value.trim();if(!n)return alert('項目名を入力してください');if(CUSTOM_FIELDS.some(f=>f.name===n))return alert('同じ項目名が存在します');const f={id:newFieldId(),name:n,type:type.value,unit:unit.value.trim(),options:[],hidden:false};if(saveCustomFields([...CUSTOM_FIELDS,f]))renderSettings()}));root.append(form);
 }
 $('otherBtn').onclick=()=>openEntry('その他');$('backBtn').onclick=()=>show('home');$('navHome').onclick=()=>show('home');$('navRecords').onclick=()=>show('records');$('navSettings').onclick=()=>show('settings');$('minus').onclick=()=>{$('count').value=String(Math.max(1,(Number($('count').value)||1)-1))};$('plus').onclick=()=>{$('count').value=String((Number($('count').value)||0)+1)};
-$('saveBtn').onclick=()=>{if(!migrationReady){$('error').textContent='IDの移行または保存領域に問題があります。旧データを保護するため保存を停止しました。';return}const species=chosen==='その他'?$('customSpecies').value.trim():chosen;const count=Number($('count').value);if(!species||!Number.isSafeInteger(count)||count<1){$('error').textContent='種名と1以上の整数の個体数を入力してください';return}const optional=(id,integer)=>{const raw=$(id).value.trim();if(!raw)return null;const n=Number(raw);if(!Number.isFinite(n)||n<(id==='distance'?0:1)||(integer&&!Number.isSafeInteger(n)))throw Error(id==='distance'?'距離は0以上の数値にしてください':'群れサイズは1以上の整数にしてください');return n};let flockSize,distanceM;try{flockSize=optional('flock',true);distanceM=optional('distance',false)}catch(e){$('error').textContent=e.message;return}for(const f of CUSTOM_FIELDS){if(f.type==='number'){const v=answers.customFields[f.id];if(v!==undefined&&v!==''&&!Number.isFinite(Number(v))){$('error').textContent=f.name+'は数値で入力してください';return}}}const r={id:editingId??nextId,timestamp:new Date().toISOString(),species,count,flockSize,sex:answers.sex,age:answers.age,methods:[...answers.method],behavior:[...answers.behavior],posture:answers.posture,customFields:{...(editingId?records.find(x=>x.id===editingId)?.customFields||{}:{}),...answers.customFields},distanceM,freeMemo:$('freeMemo').value.trim(),...(editingId?(()=>{const old=records.find(x=>x.id===editingId);return {latitude:old?.latitude??null,longitude:old?.longitude??null,gpsAccuracyM:old?.gpsAccuracyM??null,gpsTimestamp:old?.gpsTimestamp??null}})():{latitude:latestLocation?.latitude??null,longitude:latestLocation?.longitude??null,gpsAccuracyM:latestLocation?.gpsAccuracyM??null,gpsTimestamp:latestLocation?.gpsTimestamp??null})};const next=editingId?records.map(old=>old.id===editingId?{...r,id:old.id,timestamp:old.timestamp}:old):[...records,r];try{localStorage.setItem(KEY,JSON.stringify(next));if(!editingId){nextId++;localStorage.setItem(NEXT_ID_KEY,String(nextId))}records=next;show(editingId?'records':'home')}catch(e){$('error').textContent='保存できませんでした。端末の空き容量やブラウザ設定を確認してください。'}};
+$('saveBtn').onclick=()=>{if(!migrationReady){$('error').textContent='IDの移行または保存領域に問題があります。旧データを保護するため保存を停止しました。';return}const species=chosen==='その他'?$('customSpecies').value.trim():chosen;const count=Number($('count').value);if(!species||!Number.isSafeInteger(count)||count<1){$('error').textContent='種名と1以上の整数の個体数を入力してください';return}const optional=(id,integer)=>{const raw=$(id).value.trim();if(!raw)return null;const n=Number(raw);if(!Number.isFinite(n)||n<(id==='distance'?0:1)||(integer&&!Number.isSafeInteger(n)))throw Error(id==='distance'?'距離は0以上の数値にしてください':'群れサイズは1以上の整数にしてください');return n};let flockSize,distanceM;try{flockSize=optional('flock',true);distanceM=optional('distance',false)}catch(e){$('error').textContent=e.message;return}for(const f of CUSTOM_FIELDS){if(f.type==='number'){const v=answers.customFields[f.id];if(v!==undefined&&v!==''&&!Number.isFinite(Number(v))){$('error').textContent=f.name+'は数値で入力してください';return}}}const currentGps=validGps();const r={id:editingId??nextId,timestamp:new Date().toISOString(),species,count,flockSize,sex:answers.sex,age:answers.age,methods:[...answers.method],behavior:[...answers.behavior],posture:answers.posture,customFields:{...(editingId?records.find(x=>x.id===editingId)?.customFields||{}:{}),...answers.customFields},distanceM,freeMemo:$('freeMemo').value.trim(),...(editingId?(()=>{const old=records.find(x=>x.id===editingId);return {latitude:old?.latitude??null,longitude:old?.longitude??null,gpsAccuracyM:old?.gpsAccuracyM??null,gpsTimestamp:old?.gpsTimestamp??null}})():{latitude:currentGps?.latitude??null,longitude:currentGps?.longitude??null,gpsAccuracyM:currentGps?.gpsAccuracyM??null,gpsTimestamp:currentGps?.gpsTimestamp??null})};const next=editingId?records.map(old=>old.id===editingId?{...r,id:old.id,timestamp:old.timestamp}:old):[...records,r];try{localStorage.setItem(KEY,JSON.stringify(next));if(!editingId){nextId++;localStorage.setItem(NEXT_ID_KEY,String(nextId))}records=next;show(editingId?'records':'home')}catch(e){$('error').textContent='保存できませんでした。端末の空き容量やブラウザ設定を確認してください。'}};
 $('deleteBtn').onclick=()=>{if(!migrationReady||editingId===null||!confirm('この記録を削除しますか？\n削除したIDは再利用されません。'))return;const next=records.filter(r=>r.id!==editingId);try{localStorage.setItem(KEY,JSON.stringify(next));records=next;editingId=null;show('records')}catch(e){$('error').textContent='削除を保存できませんでした'}};
 render();updateGps();
 if('serviceWorker' in navigator && (location.protocol==='https:' || location.hostname==='localhost')){
